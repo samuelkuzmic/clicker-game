@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Ultimate Mega Clicker</title>
+  <title>clicker game</title>
   <style>
     body { font-family: Arial; background:#f0f0f0; margin:0; padding:10px; display:flex; flex-wrap:wrap; gap:20px; }
     .column { background:#fff; border-radius:8px; padding:10px; max-width:300px; flex:1 1 300px; display:flex; flex-direction:column; }
@@ -67,22 +67,38 @@ let rebirthPoints=0;
 let permanentUpgrades={clickBonus:0, autoBonus:0, moneyBonus:0};
 let rebirthBoughtCount={};
 
-// Generate 25 upgrades per category dynamically
-function generateUpgrades(){
-  let clickUpgrades=[], moneyUpgrades=[], autoUpgrades=[], sellerUpgrades=[], permUpgrades=[];
-  for(let i=1;i<=25;i++){
-    clickUpgrades.push({name:`Click +${i}`, cost:10*i, power:i, type:"click"});
-    moneyUpgrades.push({name:`Sell ${i*10} Clicks → $${i*5}`, clickCost:i*10, moneyGain:i*5});
-    autoUpgrades.push({name:`AutoClicker +${i}`, clickCost:i*50, type:"autoBuy"});
-    sellerUpgrades.push({name:`AutoSeller +${i}`, cost:i*100, type:"autoSellerBuy"});
-    permUpgrades.push({name:`Rebirth Upgrade +${i}`, cost:i, type:"clickBonus"});
-  }
-  return {clickUpgrades, moneyUpgrades, autoUpgrades, sellerUpgrades, permUpgrades};
-}
+// Meaningful upgrades only
+const upgrades = {
+  clickUpgrades:[
+    {name:"Click +1", cost:10, power:1},
+    {name:"Click +5", cost:100, power:5},
+    {name:"Click x2", cost:500, power:0}, // multiplier example
+  ],
+  moneyUpgrades:[
+    {name:"Sell 10 Clicks → $5", clickCost:10, moneyGain:5},
+    {name:"Sell 50 Clicks → $30", clickCost:50, moneyGain:30},
+    {name:"Sell 100 Clicks → $70", clickCost:100, moneyGain:70},
+    {name:"Sell 1000 Clicks → $800", clickCost:1000, moneyGain:800},
+    {name:"Sell 10000 Clicks → $10000", clickCost:10000, moneyGain:10000}
+  ],
+  autoUpgrades:[
+    {name:"AutoClicker +1", clickCost:50},
+    {name:"AutoClicker Power +2", clickCost:200},
+    {name:"AutoClicker Speed x2", clickCost:500}
+  ],
+  sellerUpgrades:[
+    {name:"AutoSeller +1", cost:100},
+    {name:"AutoSeller Power +1", cost:500},
+    {name:"AutoSeller Speed x2", cost:1000}
+  ],
+  permUpgrades:[
+    {name:"Click Bonus +1", cost:1, type:"clickBonus"},
+    {name:"Auto Bonus +1", cost:2, type:"autoBonus"},
+    {name:"Money Bonus +1", cost:3, type:"moneyBonus"}
+  ]
+};
 
-const upgrades = generateUpgrades();
-
-// DOM
+// DOM references
 const scoreEl=document.getElementById("score");
 const clickPowerStat=document.getElementById("clickPowerStat");
 const moneyEl=document.getElementById("money");
@@ -110,12 +126,11 @@ function floatText(text,x,y){
   setTimeout(()=>span.remove(),1000);
 }
 
-// Create buttons dynamically
+// Create upgrade buttons dynamically
 function createUpgradeButtons(){
   upgrades.clickUpgrades.forEach((u,i)=>{
     let btn=document.createElement("button");
     btn.className="upgradeBtn";
-    btn.id="clickUpgrade"+i;
     btn.textContent=`${u.name} (Cost: $${u.cost})`;
     btn.onclick=()=>{
       if(money>=u.cost){
@@ -132,7 +147,6 @@ function createUpgradeButtons(){
   upgrades.moneyUpgrades.forEach((u,i)=>{
     let btn=document.createElement("button");
     btn.className="upgradeBtn";
-    btn.id="moneyUpgrade"+i;
     btn.textContent=`${u.name} (Cost: ${u.clickCost} clicks)`;
     btn.onclick=()=>{if(clicks>=u.clickCost){clicks-=u.clickCost; money+=u.moneyGain+permanentUpgrades.moneyBonus; updateDisplay();}};
     moneyUpgradesDiv.appendChild(btn);
@@ -141,7 +155,6 @@ function createUpgradeButtons(){
   upgrades.autoUpgrades.forEach((u,i)=>{
     let btn=document.createElement("button");
     btn.className="upgradeBtn";
-    btn.id="autoUpgrade"+i;
     btn.textContent=`${u.name} (Cost: ${u.clickCost} clicks)`;
     btn.onclick=()=>{
       if(clicks>=u.clickCost){clicks-=u.clickCost; autoLevel+=1; u.clickCost=Math.floor(u.clickCost*1.5); btn.textContent=`${u.name} (Cost: ${u.clickCost} clicks)`; updateDisplay();}
@@ -152,7 +165,6 @@ function createUpgradeButtons(){
   upgrades.sellerUpgrades.forEach((u,i)=>{
     let btn=document.createElement("button");
     btn.className="upgradeBtn";
-    btn.id="sellerUpgrade"+i;
     btn.textContent=`${u.name} (Cost: $${u.cost})`;
     btn.onclick=()=>{
       if(money>=u.cost){money-=u.cost; autoSellerLevel+=1; autoSellerPower+=1; u.cost=Math.floor(u.cost*1.5); btn.textContent=`${u.name} (Cost: $${u.cost})`; updateDisplay();}
@@ -164,13 +176,12 @@ function createUpgradeButtons(){
     rebirthBoughtCount[i]=0;
     let btn=document.createElement("button");
     btn.className="upgradeBtn";
-    btn.id="permUpgrade"+i;
     btn.textContent=`${u.name} (Cost: ${u.cost} RP | Bought: ${rebirthBoughtCount[i]})`;
     btn.onclick=()=>{
       if(rebirthPoints>=u.cost){
         rebirthPoints-=u.cost;
         rebirthBoughtCount[i]+=1;
-        permanentUpgrades.clickBonus+=u.cost;
+        permanentUpgrades[u.type]+=u.cost;
         btn.textContent=`${u.name} (Cost: ${u.cost} RP | Bought: ${rebirthBoughtCount[i]})`;
         updateDisplay();
       }
@@ -179,7 +190,7 @@ function createUpgradeButtons(){
   });
 }
 
-// Click
+// Click event
 clickBtn.addEventListener("click",e=>{
   clicks+=clicksPerClick+permanentUpgrades.clickBonus;
   floatText("+"+(clicksPerClick+permanentUpgrades.clickBonus),e.pageX,e.pageY);
