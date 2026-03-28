@@ -98,6 +98,12 @@ const upgrades = {
   ]
 };
 
+// Save base/original prices
+upgrades.clickUpgrades.forEach(u=>u.baseCost=u.cost);
+upgrades.moneyUpgrades.forEach(u=>u.baseClickCost=u.clickCost);
+upgrades.autoUpgrades.forEach(u=>u.baseAutoClickCost=u.autoClickCost);
+upgrades.sellerUpgrades.forEach(u=>u.baseCost=u.cost);
+
 // DOM refs
 const scoreEl=document.getElementById("score");
 const clickPowerStat=document.getElementById("clickPowerStat");
@@ -122,7 +128,7 @@ buyAutoClickerBtn.onclick=()=>{
   if(clicks>=autoClickerCost){
     clicks-=autoClickerCost;
     autoLevel+=1;
-    autoClickerCost=Math.floor(autoClickerCost*1.5); // price goes up
+    autoClickerCost=Math.floor(autoClickerCost*1.5);
     buyAutoClickerBtn.textContent=`Buy AutoClicker (${autoClickerCost} clicks)`;
     updateDisplay();
   }
@@ -194,8 +200,7 @@ upgrades.permUpgrades.forEach((u,i)=>{
     if(rebirthPoints>=u.cost){
       rebirthPoints-=u.cost;
       rebirthBoughtCount[i]+=1;
-      // make permanent upgrades stronger
-      if(u.type==="moneyBonus") permanentUpgrades[u.type]+=u.cost*10; 
+      if(u.type==="moneyBonus") permanentUpgrades[u.type]+=u.cost*10;
       else permanentUpgrades[u.type]+=u.cost*5;
       btn.textContent=`${u.name} (Cost: ${u.cost} RP | Bought: ${rebirthBoughtCount[i]})`;
       updateDisplay();
@@ -227,9 +232,18 @@ document.getElementById("rebirth").addEventListener("click",()=>{
   if(clicks>=1000000){
     let gainedRP=Math.floor(clicks/1000000);
     rebirthPoints+=gainedRP;
+
+    // reset all core stats
     clicks=0; money=0; clicksPerClick=1;
     autoLevel=0; autoPower=1; autoClicks=0;
     autoSellerLevel=0; autoSellerPower=1;
+
+    // reset upgrade prices to base values
+    upgrades.clickUpgrades.forEach(u=>u.cost=u.baseCost);
+    upgrades.moneyUpgrades.forEach(u=>u.clickCost=u.baseClickCost);
+    upgrades.autoUpgrades.forEach(u=>u.autoClickCost=u.baseAutoClickCost);
+    upgrades.sellerUpgrades.forEach(u=>u.cost=u.baseCost);
+
     updateDisplay();
   } else alert("Need 1,000,000 clicks to rebirth");
 });
