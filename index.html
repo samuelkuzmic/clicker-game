@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>clicker game</title>
+  <title>Clicker Game</title>
   <style>
     body { font-family: Arial; background:#f0f0f0; margin:0; padding:10px; display:flex; flex-wrap:wrap; gap:20px; }
     .column { background:#fff; border-radius:8px; padding:10px; max-width:300px; flex:1 1 300px; display:flex; flex-direction:column; }
@@ -62,12 +62,12 @@ let rebirthPoints=0;
 let permanentUpgrades={clickBonus:0, autoBonus:0, moneyBonus:0};
 let rebirthBoughtCount={};
 
-// Upgrades: 5+ meaningful per category
+// Upgrades
 const upgrades = {
   clickUpgrades:[
     {name:"Click +1", cost:10, power:1},
     {name:"Click +5", cost:50, power:5},
-    {name:"Click x2", cost:200, power:0},
+    {name:"Clicker Multiplier", cost:200, power:0},
     {name:"Click +10", cost:500, power:10},
     {name:"Click x3", cost:1000, power:0}
   ],
@@ -119,7 +119,7 @@ const autoSellerUpgradesDiv=document.getElementById("autoSellerUpgrades");
 const permUpgradesDiv=document.getElementById("permUpgrades");
 const toggleSellerBtn=document.getElementById("toggleSeller");
 
-// Create upgrade buttons
+// Create buttons
 function createUpgradeButtons(){
   upgrades.clickUpgrades.forEach(u=>{
     let btn=document.createElement("button");
@@ -148,13 +148,13 @@ function createUpgradeButtons(){
   upgrades.autoUpgrades.forEach(u=>{
     let btn=document.createElement("button");
     btn.className="upgradeBtn";
-    btn.textContent=`${u.name} (Cost: ${u.clickCost} AutoClicks)`;
+    btn.textContent=`${u.name} (Cost: ${u.clickCost} clicks)`;
     btn.onclick=()=>{
-      if(autoClicks>=u.clickCost){
-        autoClicks-=u.clickCost;
+      if(clicks>=u.clickCost){
+        clicks-=u.clickCost;
         autoLevel+=1;
         u.clickCost=Math.floor(u.clickCost*1.5);
-        btn.textContent=`${u.name} (Cost: ${u.clickCost} AutoClicks)`;
+        btn.textContent=`${u.name} (Cost: ${u.clickCost} clicks)`;
         updateDisplay();
       }
     };
