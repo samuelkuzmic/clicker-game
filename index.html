@@ -164,10 +164,10 @@ clickBtn.addEventListener("click",()=>{
   updateStats();
 });
 
-// Build upgrades buttons
-function buildUpgrades(){
+// Build upgrade buttons
+function buildUpgrades() {
   clickUpgradesDiv.innerHTML="";
-  upgrades.clickUpgrades.forEach(u=>{
+  upgrades.clickUpgrades.forEach((u,i)=>{
     const btn=document.createElement("button");
     btn.className="upgradeBtn";
     btn.innerText=`${u.name} ($${u.cost})`;
@@ -187,10 +187,10 @@ function buildUpgrades(){
   upgrades.moneyUpgrades.forEach(u=>{
     const btn=document.createElement("button");
     btn.className="upgradeBtn";
-    btn.innerText=`${u.name} (Cost: ${u.clickCost} Clicks)`;
+    btn.innerText=`${u.name}`;
     btn.onclick=()=>{
       if(clicks>=u.clickCost){
-        clicks-=u.clickCost;
+        clicks -= u.clickCost;
         money += Math.floor(u.moneyGain*(1+permanentUpgrades.moneyBonus/100));
         u.clickCost = Math.floor(u.clickCost*1.5);
         updateStats();
@@ -201,7 +201,7 @@ function buildUpgrades(){
   });
 
   autoUpgradesDiv.innerHTML="";
-  upgrades.autoUpgrades.forEach(u=>{
+  upgrades.autoUpgrades.forEach((u,i)=>{
     const btn=document.createElement("button");
     btn.className="upgradeBtn";
     btn.innerText=`${u.name} (${u.autoClickCost} AutoClicks)`;
@@ -211,7 +211,7 @@ function buildUpgrades(){
         if(u.powerIncrease) autoPower+=u.powerIncrease;
         if(u.speedDecrease){
           autoClickInterval -= u.speedDecrease;
-          if(autoClickInterval<100) autoClickInterval=100;
+          if(autoClickInterval<100) autoClickInterval=100; // minimum 0.1s
           restartAutoClicker();
         }
         u.autoClickCost = Math.floor(u.autoClickCost*1.5);
@@ -260,7 +260,7 @@ function buildUpgrades(){
 }
 buildUpgrades();
 
-// AutoClicker tick
+// AutoClicker
 function autoClickerTick(){
   if(autoLevel>0){
     let gen=autoLevel*(autoPower+permanentUpgrades.autoBonus);
@@ -294,36 +294,17 @@ document.getElementById("rebirth").addEventListener("click",()=>{
   }
 });
 
-// Bank functions
-depositBtn.addEventListener("click", ()=>{
-  const amt = Number(depositAmount.value);
-  if(amt > 0 && money >= amt){
-    money -= amt;
-    bank += amt;
-    depositAmount.value="";
-    updateStats();
-  } else { alert("Not enough money or invalid amount!"); }
+// Bank
+depositBtn.addEventListener("click",()=>{
+  const amt = parseInt(depositAmount.value)||0;
+  if(money>=amt){ money-=amt; bank+=amt; updateStats(); }
+});
+withdrawBtn.addEventListener("click",()=>{
+  const amt = parseInt(withdrawAmount.value)||0;
+  if(bank>=amt){ bank-=amt; money+=amt; updateStats(); }
 });
 
-withdrawBtn.addEventListener("click", ()=>{
-  const amt = Number(withdrawAmount.value);
-  if(amt > 0 && bank >= amt){
-    bank -= amt;
-    money += amt;
-    withdrawAmount.value="";
-    updateStats();
-  } else { alert("Not enough money in bank or invalid amount!"); }
-});
-
-// AutoSeller tick
-setInterval(()=>{
-  if(autoSellerOn && autoSellerLevel>0){
-    let sellAmount=Math.floor(autoSellerLevel*autoSellerPower);
-    if(clicks>=sellAmount){ clicks-=sellAmount; money+=sellAmount*(1+permanentUpgrades.moneyBonus/100); updateStats();}
-  }
-},1000);
-
-// Update stats & save
+// Update stats
 function updateStats(){
   scoreEl.innerText = `Clicks: ${clicks}`;
   clickPowerStat.innerText = `Clicks per click: ${clicksPerClick + permanentUpgrades.clickBonus}`;
@@ -338,8 +319,17 @@ function updateStats(){
     autoSellerLevel, autoSellerPower, autoSellerOn, rebirthPoints, permanentUpgrades, rebirthBoughtCount, bank
   }));
 }
-setInterval(updateStats,500);
 
+// AutoSeller tick
+setInterval(()=>{
+  if(autoSellerOn && autoSellerLevel>0){
+    let sellAmount=Math.floor(autoSellerLevel*autoSellerPower);
+    if(clicks>=sellAmount){ clicks-=sellAmount; money+=sellAmount*(1+permanentUpgrades.moneyBonus/100); updateStats();}
+  }
+},1000);
+
+setInterval(updateStats,500);
 </script>
+
 </body>
 </html>
