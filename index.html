@@ -140,14 +140,8 @@ const depositAmount=document.getElementById("depositAmount");
 const withdrawAmount=document.getElementById("withdrawAmount");
 
 /* ===== UTILITIES ===== */
-function saveGame(){
-  localStorage.setItem("clickerGameData", JSON.stringify(game));
-}
-
-function loadGame(){
-  const data = JSON.parse(localStorage.getItem("clickerGameData")||"{}");
-  if(data.clicks !== undefined) game = Object.assign(game, data);
-}
+function saveGame(){ localStorage.setItem("clickerGameData", JSON.stringify(game)); }
+function loadGame(){ const data = JSON.parse(localStorage.getItem("clickerGameData")||"{}"); if(data.clicks !== undefined) game = Object.assign(game, data); }
 
 /* ===== UPDATE STATS ===== */
 function updateStats(){
@@ -163,30 +157,16 @@ function updateStats(){
 }
 
 /* ===== CLICK ===== */
-clickBtn.addEventListener("click",()=>{
-  game.clicks+=game.clicksPerClick+(game.permanentUpgrades.clickBonus||0);
-  updateStats();
-});
+clickBtn.addEventListener("click",()=>{ game.clicks+=game.clicksPerClick+(game.permanentUpgrades.clickBonus||0); updateStats(); });
 
 /* ===== AUTOCLICKER ===== */
-function autoClickerTick(){
-  if(game.autoLevel>0){
-    let gen = game.autoLevel*(game.autoPower+(game.permanentUpgrades.autoBonus||0));
-    game.autoClicks+=gen;
-    game.clicks+=gen;
-    updateStats();
-  }
-}
-function restartAutoClicker(){
-  if(autoClickTimer) clearInterval(autoClickTimer);
-  autoClickTimer = setInterval(autoClickerTick, game.autoClickInterval);
-}
+function autoClickerTick(){ if(game.autoLevel>0){ let gen = game.autoLevel*(game.autoPower+(game.permanentUpgrades.autoBonus||0)); game.autoClicks+=gen; game.clicks+=gen; updateStats(); } }
+function restartAutoClicker(){ if(autoClickTimer) clearInterval(autoClickTimer); autoClickTimer = setInterval(autoClickerTick, game.autoClickInterval); }
 restartAutoClicker();
 
+/* ===== BANK x2 TIMER ===== */
+setInterval(()=>{ if(game.bank>0){ game.bank*=2; updateStats(); } }, 60000); // doubles bank every 60 seconds
+
+/* ===== LOAD GAME ===== */
 loadGame();
 updateStats();
-
-</script>
-
-</body>
-</html>
