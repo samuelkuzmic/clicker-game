@@ -60,99 +60,61 @@
 </div>
 
 <script>
-/* ====== GAME STATE ====== */
-let clicks = 0, money = 0, clicksPerClick = 1;
-let autoLevel = 0, autoPower = 1, autoClicks = 0, autoClickerCost = 100;
-let autoClickInterval = 1000, autoClickTimer = null;
-let autoSellerLevel = 0, autoSellerPower = 1, autoSellerOn = true;
-let rebirthPoints = 0;
-let permanentUpgrades = {clickBonus:0, autoBonus:0, moneyBonus:0};
-let rebirthBoughtCount = {};
-let bank = 0;
+/* ===== GAME STATE ===== */
+let game = {
+  clicks: 0,
+  money: 0,
+  clicksPerClick: 1,
+  autoLevel: 0,
+  autoPower: 1,
+  autoClicks: 0,
+  autoClickInterval: 1000,
+  autoSellerLevel: 0,
+  autoSellerPower: 1,
+  autoSellerOn: true,
+  rebirthPoints: 0,
+  permanentUpgrades: {clickBonus:0, autoBonus:0, moneyBonus:0},
+  bank: 0,
+  upgradeCosts: {}
+};
 
-/* ====== UPGRADES ====== */
+let autoClickTimer = null;
+
+/* ===== UPGRADES ===== */
 const upgrades = {
   clickUpgrades:[
-    {name:"Click +1", cost:10, power:1},
-    {name:"Click +5", cost:50, power:5},
-    {name:"Clicker Multiplier", cost:200, power:2},
-    {name:"Click +10", cost:500, power:10},
-    {name:"Click x3", cost:1000, power:3}
+    {name:"Click +1", baseCost:10, power:1},
+    {name:"Click +5", baseCost:50, power:5},
+    {name:"Clicker Multiplier", baseCost:200, power:2},
+    {name:"Click +10", baseCost:500, power:10},
+    {name:"Click x3", baseCost:1000, power:3}
   ],
   moneyUpgrades:[
-    {name:"Sell 10 Clicks → $5", clickCost:10, moneyGain:5},
-    {name:"Sell 50 Clicks → $30", clickCost:50, moneyGain:30},
-    {name:"Sell 100 Clicks → $70", clickCost:100, moneyGain:70},
-    {name:"Sell 1000 Clicks → $800", clickCost:1000, moneyGain:800},
-    {name:"Sell 10000 Clicks → $10000", clickCost:10000, moneyGain:10000},
-    {name:"Sell 100000 Clicks → $100000", clickCost:100000, moneyGain:100000},
-    {name:"Sell 1000000 Clicks → $500000", clickCost:1000000, moneyGain:500000}
+    {name:"Sell 10 Clicks → $5", baseClickCost:10, moneyGain:5},
+    {name:"Sell 50 Clicks → $30", baseClickCost:50, moneyGain:30},
+    {name:"Sell 100 Clicks → $70", baseClickCost:100, moneyGain:70},
+    {name:"Sell 1000 Clicks → $800", baseClickCost:1000, moneyGain:800},
+    {name:"Sell 10000 Clicks → $10000", baseClickCost:10000, moneyGain:10000}
   ],
   autoUpgrades:[
-    {name:"Buy AutoClicker", autoClickCost:0, powerIncrease:0, buyCost:100},
-    {name:"AutoClicker Power +1", autoClickCost:5, powerIncrease:1},
-    {name:"AutoClicker Power +2", autoClickCost:20, powerIncrease:2},
-    {name:"AutoClicker Speed -0.1s", autoClickCost:50, speedDecrease:100},
-    {name:"AutoClicker +5 Power", autoClickCost:100, powerIncrease:5},
-    {name:"AutoClicker +10 Power", autoClickCost:200, powerIncrease:10}
+    {name:"Buy AutoClicker", baseBuyCost:100, buyCost:100},
+    {name:"AutoClicker Power +1", baseAutoClickCost:5, powerIncrease:1},
+    {name:"AutoClicker Power +2", baseAutoClickCost:20, powerIncrease:2},
+    {name:"AutoClicker Speed -0.1s", baseAutoClickCost:50, speedDecrease:100},
+    {name:"AutoClicker +5 Power", baseAutoClickCost:100, powerIncrease:5}
   ],
   sellerUpgrades:[
-    {name:"AutoSeller +1", cost:100},
-    {name:"AutoSeller +2", cost:300},
-    {name:"AutoSeller Power +1", cost:500},
-    {name:"AutoSeller Power +2", cost:1000},
-    {name:"AutoSeller Speed x2", cost:2000}
+    {name:"AutoSeller +1", baseCost:100},
+    {name:"AutoSeller Power +1", baseCost:500}
   ],
   permUpgrades:[
     {name:"Click Bonus +2", cost:1, type:"clickBonus", power:2},
-    {name:"Click Bonus +5", cost:2, type:"clickBonus", power:5},
     {name:"Auto Bonus +2", cost:2, type:"autoBonus", power:2},
-    {name:"Money Bonus +10%", cost:3, type:"moneyBonus", power:10},
-    {name:"Money Bonus +20%", cost:5, type:"moneyBonus", power:20}
+    {name:"Money Bonus +10%", cost:3, type:"moneyBonus", power:10}
   ]
 };
 
-/* Save original costs for persistence */
-upgrades.clickUpgrades.forEach(u=>u.baseCost=u.cost);
-upgrades.moneyUpgrades.forEach(u=>u.baseClickCost=u.clickCost);
-upgrades.autoUpgrades.forEach(u=>{
-  u.baseAutoClickCost = u.autoClickCost;
-  if(u.buyCost) u.baseBuyCost = u.buyCost;
-});
-upgrades.sellerUpgrades.forEach(u=>u.baseCost=u.cost);
-
-/* ====== LOAD LOCAL STORAGE ====== */
-try {
-  const data = JSON.parse(localStorage.getItem("clickerGameData")||"{}");
-  if(data) {
-    clicks = data.clicks || 0;
-    money = data.money || 0;
-    clicksPerClick = data.clicksPerClick || 1;
-    autoLevel = data.autoLevel || 0;
-    autoPower = data.autoPower || 1;
-    autoClicks = data.autoClicks || 0;
-    autoClickerCost = data.autoClickerCost || 100;
-    autoClickInterval = data.autoClickInterval || 1000;
-    autoSellerLevel = data.autoSellerLevel || 0;
-    autoSellerPower = data.autoSellerPower || 1;
-    autoSellerOn = data.autoSellerOn !== undefined ? data.autoSellerOn : true;
-    rebirthPoints = data.rebirthPoints || 0;
-    permanentUpgrades = data.permanentUpgrades || {clickBonus:0, autoBonus:0, moneyBonus:0};
-    rebirthBoughtCount = data.rebirthBoughtCount || {};
-    bank = data.bank || 0;
-
-    // Load upgrade costs
-    if(data.upgradeCosts){
-      for(const key in data.upgradeCosts){
-        data.upgradeCosts[key].forEach((cost,i)=>{
-          if(upgrades[key][i]) upgrades[key][i].cost = cost;
-        });
-      }
-    }
-  }
-} catch(e){ console.warn("Failed to load save data", e); }
-
-/* ====== DOM ====== */
+/* ===== DOM ===== */
 const scoreEl=document.getElementById("score");
 const clickPowerStat=document.getElementById("clickPowerStat");
 const moneyEl=document.getElementById("money");
@@ -173,145 +135,143 @@ const withdrawBtn=document.getElementById("withdrawBtn");
 const depositAmount=document.getElementById("depositAmount");
 const withdrawAmount=document.getElementById("withdrawAmount");
 
-/* ====== UTILS ====== */
-function updateStats(){
-  scoreEl.innerText = `Clicks: ${clicks}`;
-  clickPowerStat.innerText = `Clicks per click: ${clicksPerClick + (permanentUpgrades.clickBonus||0)}`;
-  moneyEl.innerText = `Money: $${money}`;
-  moneyBonusStat.innerText = `Money Bonus: ${permanentUpgrades.moneyBonus||0}%`;
-  autoStatsEl.innerText = `AutoClickers: ${autoLevel} | Total AutoClicks: ${autoClicks} | Power: ${autoPower} | Speed: ${(autoClickInterval/1000).toFixed(2)}s`;
-  autoSellerStatsEl.innerText = `Level: ${autoSellerLevel} | Power: ${autoSellerPower} | Status: ${autoSellerOn?"ON":"OFF"}`;
-  rebirthPointsEl.innerText = `Rebirth Points: ${rebirthPoints}`;
-  bankMoneyEl.innerText = `Bank: $${bank}`;
-
-  /* Save */
-  const upgradeCosts = {
-    clickUpgrades: upgrades.clickUpgrades.map(u=>u.cost),
-    moneyUpgrades: upgrades.moneyUpgrades.map(u=>u.clickCost),
-    autoUpgrades: upgrades.autoUpgrades.map(u=>u.autoClickCost || u.buyCost || 0),
-    sellerUpgrades: upgrades.sellerUpgrades.map(u=>u.cost)
-  };
-
-  localStorage.setItem("clickerGameData",JSON.stringify({
-    clicks, money, clicksPerClick, autoLevel, autoPower, autoClicks, autoClickerCost, autoClickInterval,
-    autoSellerLevel, autoSellerPower, autoSellerOn, rebirthPoints, permanentUpgrades, rebirthBoughtCount, bank,
-    upgradeCosts
-  }));
+/* ===== UTILITIES ===== */
+function saveGame(){
+  localStorage.setItem("clickerGameData", JSON.stringify(game));
 }
 
-function addMoney(amount){ money += Math.floor(amount*(1+(permanentUpgrades.moneyBonus||0)/100)); }
-function parsePositiveNumber(val){ const n = Number(val); return (!isNaN(n) && n>0 && Number.isFinite(n)) ? n : 0; }
+function loadGame(){
+  const data = JSON.parse(localStorage.getItem("clickerGameData")||"{}");
+  if(data.clicks !== undefined) game = Object.assign(game, data);
+}
 
-/* ====== CLICK ====== */
-clickBtn.addEventListener("click",()=>{ clicks += clicksPerClick + (permanentUpgrades.clickBonus||0); updateStats(); });
+/* ===== UPDATE STATS ===== */
+function updateStats(){
+  scoreEl.innerText = `Clicks: ${game.clicks}`;
+  clickPowerStat.innerText = `Clicks per click: ${game.clicksPerClick + (game.permanentUpgrades.clickBonus||0)}`;
+  moneyEl.innerText = `Money: $${game.money}`;
+  moneyBonusStat.innerText = `Money Bonus: ${game.permanentUpgrades.moneyBonus||0}%`;
+  autoStatsEl.innerText = `AutoClickers: ${game.autoLevel} | Total AutoClicks: ${game.autoClicks} | Power: ${game.autoPower} | Speed: ${(game.autoClickInterval/1000).toFixed(2)}s`;
+  autoSellerStatsEl.innerText = `Level: ${game.autoSellerLevel} | Power: ${game.autoSellerPower} | Status: ${game.autoSellerOn?"ON":"OFF"}`;
+  rebirthPointsEl.innerText = `Rebirth Points: ${game.rebirthPoints}`;
+  bankMoneyEl.innerText = `Bank: $${game.bank}`;
+  saveGame();
+}
 
-/* ====== BUILD UPGRADE BUTTONS ====== */
+/* ===== BUILD UPGRADE BUTTONS ===== */
 function buildUpgrades(){
-  // Click Upgrades
-  clickUpgradesDiv.innerHTML="";
-  upgrades.clickUpgrades.forEach(u=>{
+  clickUpgradesDiv.innerHTML=""; moneyUpgradesDiv.innerHTML=""; autoUpgradesDiv.innerHTML=""; autoSellerUpgradesDiv.innerHTML=""; permUpgradesDiv.innerHTML="";
+
+  upgrades.clickUpgrades.forEach((u,i)=>{
+    if(!game.upgradeCosts.clickUpgrades) game.upgradeCosts.clickUpgrades = upgrades.clickUpgrades.map(u=>u.baseCost);
+    let cost = game.upgradeCosts.clickUpgrades[i];
     const btn=document.createElement("button");
     btn.className="upgradeBtn";
-    btn.innerText=`${u.name} ($${u.cost})`;
-    btn.onclick=()=>{
-      if(clicks>=u.cost){ clicks-=u.cost; clicksPerClick+=u.power; u.cost=Math.floor(u.cost*1.5); updateStats(); buildUpgrades(); }
+    btn.innerText=`${u.name} ($${cost})`;
+    btn.onclick = ()=>{
+      if(game.clicks>=cost){ game.clicks-=cost; game.clicksPerClick+=u.power; cost=Math.floor(cost*1.5); game.upgradeCosts.clickUpgrades[i]=cost; updateStats(); buildUpgrades(); }
     };
     clickUpgradesDiv.appendChild(btn);
   });
 
-  // Money Upgrades
-  moneyUpgradesDiv.innerHTML="";
-  upgrades.moneyUpgrades.forEach(u=>{
+  // money upgrades
+  upgrades.moneyUpgrades.forEach((u,i)=>{
+    if(!game.upgradeCosts.moneyUpgrades) game.upgradeCosts.moneyUpgrades = upgrades.moneyUpgrades.map(u=>u.baseClickCost);
+    let cost = game.upgradeCosts.moneyUpgrades[i];
     const btn=document.createElement("button");
     btn.className="upgradeBtn";
-    btn.innerText=`${u.name} (Cost: ${u.clickCost} Clicks)`;
-    btn.onclick=()=>{
-      if(clicks>=u.clickCost){ clicks-=u.clickCost; addMoney(u.moneyGain); u.clickCost=Math.floor(u.clickCost*1.5); updateStats(); buildUpgrades(); }
+    btn.innerText=`${u.name} (Cost: ${cost} Clicks)`;
+    btn.onclick = ()=>{
+      if(game.clicks>=cost){ game.clicks-=cost; game.money+=u.moneyGain*(1+(game.permanentUpgrades.moneyBonus||0)/100); cost=Math.floor(cost*1.5); game.upgradeCosts.moneyUpgrades[i]=cost; updateStats(); buildUpgrades(); }
     };
     moneyUpgradesDiv.appendChild(btn);
   });
 
-  // AutoClicker Upgrades
-  autoUpgradesDiv.innerHTML="";
-  upgrades.autoUpgrades.forEach(u=>{
+  // auto upgrades
+  upgrades.autoUpgrades.forEach((u,i)=>{
+    if(!game.upgradeCosts.autoUpgrades) game.upgradeCosts.autoUpgrades = upgrades.autoUpgrades.map(u=>u.buyCost||u.baseAutoClickCost||0);
+    let cost = game.upgradeCosts.autoUpgrades[i];
     const btn=document.createElement("button");
     btn.className="upgradeBtn";
-    let costLabel = u.buyCost ? `$${u.buyCost}` : `${u.autoClickCost} AutoClicks`;
-    btn.innerText=`${u.name} (${costLabel})`;
-    btn.onclick=()=>{
-      if(u.buyCost && money>=u.buyCost){ money-=u.buyCost; autoLevel++; u.buyCost=Math.floor(u.buyCost*1.5); updateStats(); buildUpgrades(); }
-      else if(u.autoClickCost && autoClicks>=u.autoClickCost){ autoClicks-=u.autoClickCost; if(u.powerIncrease) autoPower+=u.powerIncrease; if(u.speedDecrease){ autoClickInterval-=u.speedDecrease; if(autoClickInterval<100) autoClickInterval=100; restartAutoClicker(); } u.autoClickCost=Math.floor(u.autoClickCost*1.5); updateStats(); buildUpgrades(); }
+    btn.innerText=`${u.name} (${cost}${u.buyCost?' $':' AutoClicks'})`;
+    btn.onclick = ()=>{
+      if(u.buyCost && game.money>=cost){ game.money-=cost; game.autoLevel++; cost=Math.floor(cost*1.5); game.upgradeCosts.autoUpgrades[i]=cost; updateStats(); buildUpgrades(); }
+      else if(u.baseAutoClickCost && game.autoClicks>=cost){ game.autoClicks-=cost; if(u.powerIncrease) game.autoPower+=u.powerIncrease; if(u.speedDecrease){ game.autoClickInterval-=u.speedDecrease; if(game.autoClickInterval<100) game.autoClickInterval=100; restartAutoClicker(); } cost=Math.floor(cost*1.5); game.upgradeCosts.autoUpgrades[i]=cost; updateStats(); buildUpgrades(); }
     };
     autoUpgradesDiv.appendChild(btn);
   });
 
-  // AutoSeller Upgrades
-  autoSellerUpgradesDiv.innerHTML="";
-  upgrades.sellerUpgrades.forEach(u=>{
+  // seller upgrades
+  upgrades.sellerUpgrades.forEach((u,i)=>{
+    if(!game.upgradeCosts.sellerUpgrades) game.upgradeCosts.sellerUpgrades = upgrades.sellerUpgrades.map(u=>u.baseCost);
+    let cost = game.upgradeCosts.sellerUpgrades[i];
     const btn=document.createElement("button");
     btn.className="upgradeBtn";
-    btn.innerText=`${u.name} ($${u.cost})`;
-    btn.onclick=()=>{
-      if(money>=u.cost){ money-=u.cost; autoSellerLevel++; autoSellerPower++; u.cost=Math.floor(u.cost*1.5); updateStats(); buildUpgrades(); }
+    btn.innerText=`${u.name} ($${cost})`;
+    btn.onclick = ()=>{
+      if(game.money>=cost){ game.money-=cost; game.autoSellerLevel++; game.autoSellerPower++; cost=Math.floor(cost*1.5); game.upgradeCosts.sellerUpgrades[i]=cost; updateStats(); buildUpgrades(); }
     };
     autoSellerUpgradesDiv.appendChild(btn);
   });
 
-  // Permanent Upgrades
-  permUpgradesDiv.innerHTML="";
+  // permanent upgrades
   upgrades.permUpgrades.forEach((u,i)=>{
     const btn=document.createElement("button");
     btn.className="upgradeBtn";
     btn.innerText=`${u.name} (${u.cost} RP)`;
-    btn.onclick=()=>{
-      if(rebirthPoints>=u.cost){ rebirthPoints-=u.cost; permanentUpgrades[u.type]+=(u.power||0); rebirthBoughtCount[i]=(rebirthBoughtCount[i]||0)+1; updateStats(); buildUpgrades(); }
+    btn.onclick = ()=>{
+      if(game.rebirthPoints>=u.cost){ game.rebirthPoints-=u.cost; game.permanentUpgrades[u.type]+=(u.power||0); updateStats(); buildUpgrades(); }
     };
     permUpgradesDiv.appendChild(btn);
   });
 }
-buildUpgrades();
 
-/* ====== AUTOCLICKER ====== */
-function autoClickerTick(){ if(autoLevel>0){ let gen = autoLevel*(autoPower+(permanentUpgrades.autoBonus||0)); autoClicks+=gen; clicks+=gen; updateStats(); } }
-function restartAutoClicker(){ if(autoClickTimer) clearInterval(autoClickTimer); autoClickTimer = setInterval(autoClickerTick, autoClickInterval); }
+/* ===== CLICK ===== */
+clickBtn.addEventListener("click",()=>{ game.clicks+=game.clicksPerClick+(game.permanentUpgrades.clickBonus||0); updateStats(); });
+
+/* ===== AUTOCLICKER ===== */
+function autoClickerTick(){ if(game.autoLevel>0){ let gen = game.autoLevel*(game.autoPower+(game.permanentUpgrades.autoBonus||0)); game.autoClicks+=gen; game.clicks+=gen; updateStats(); } }
+function restartAutoClicker(){ if(autoClickTimer) clearInterval(autoClickTimer); autoClickTimer = setInterval(autoClickerTick, game.autoClickInterval); }
 restartAutoClicker();
 
-/* ====== AUTOSSELLER ====== */
-setInterval(()=>{ if(autoSellerOn && autoSellerLevel>0){ let sellAmount=autoSellerLevel*autoSellerPower; if(clicks>=sellAmount){ clicks-=sellAmount; addMoney(sellAmount); updateStats(); } } },1000);
+/* ===== AUTOSSELLER ===== */
+setInterval(()=>{
+  if(game.autoSellerOn && game.autoSellerLevel>0){
+    let sellAmount = game.autoSellerLevel*game.autoSellerPower;
+    if(game.clicks>=sellAmount){ game.clicks-=sellAmount; game.money+=sellAmount*(1+(game.permanentUpgrades.moneyBonus||0)/100); updateStats(); }
+  }
+},1000);
 
-/* ====== TOGGLE SELLER ====== */
-toggleSellerBtn.addEventListener("click",()=>{ autoSellerOn=!autoSellerOn; updateStats(); });
+/* ===== TOGGLE SELLER ===== */
+toggleSellerBtn.addEventListener("click",()=>{ game.autoSellerOn=!game.autoSellerOn; updateStats(); });
 
-/* ====== BANK ====== */
-depositBtn.addEventListener("click",()=>{
-  const amt=parsePositiveNumber(depositAmount.value);
-  if(amt>0 && money>=amt){ money-=amt; bank+=amt; depositAmount.value=""; updateStats(); } else alert("Not enough money or invalid amount!");
-});
-withdrawBtn.addEventListener("click",()=>{
-  const amt=parsePositiveNumber(withdrawAmount.value);
-  if(amt>0 && bank>=amt){ bank-=amt; money+=amt; withdrawAmount.value=""; updateStats(); } else alert("Not enough money in bank or invalid amount!");
-});
+/* ===== BANK ===== */
+depositBtn.addEventListener("click",()=>{ const amt = Number(depositAmount.value)||0; if(amt>0 && game.money>=amt){ game.money-=amt; game.bank+=amt; depositAmount.value=""; updateStats(); } else alert("Invalid or insufficient money"); });
+withdrawBtn.addEventListener("click",()=>{ const amt = Number(withdrawAmount.value)||0; if(amt>0 && game.bank>=amt){ game.bank-=amt; game.money+=amt; withdrawAmount.value=""; updateStats(); } else alert("Invalid or insufficient bank money"); });
 
-/* ====== REBIRTH ====== */
+/* ===== REBIRTH ===== */
 document.getElementById("rebirth").addEventListener("click",()=>{
-  const requirement=1000000;
-  if(clicks>=requirement){
-    rebirthPoints+=Math.floor(clicks/requirement);
-    clicks=0; money=0; clicksPerClick=1; autoLevel=0; autoPower=1; autoClicks=0; autoClickerCost=100; autoClickInterval=1000;
-    autoSellerLevel=0; autoSellerPower=1; bank=0;
-    // Reset upgrade costs
-    upgrades.clickUpgrades.forEach(u=>u.cost=u.baseCost);
-    upgrades.moneyUpgrades.forEach(u=>u.clickCost=u.baseClickCost);
-    upgrades.autoUpgrades.forEach(u=>{ if(u.autoClickCost) u.autoClickCost=u.baseAutoClickCost; if(u.buyCost) u.buyCost=u.baseBuyCost; });
-    upgrades.sellerUpgrades.forEach(u=>u.cost=u.baseCost);
+  const req=1000000;
+  if(game.clicks>=req){
+    game.rebirthPoints+=Math.floor(game.clicks/req);
+    // reset everything except permanent upgrades
+    game.clicks=0; game.money=0; game.clicksPerClick=1;
+    game.autoLevel=0; game.autoPower=1; game.autoClicks=0; game.autoClickInterval=1000;
+    game.autoSellerLevel=0; game.autoSellerPower=1;
+    game.bank=0;
+    // reset upgrade costs
+    game.upgradeCosts={};
+    buildUpgrades();
     restartAutoClicker();
     updateStats();
-    buildUpgrades();
   } else alert("Not enough clicks to rebirth!");
 });
 
-/* ====== AUTO SAVE ====== */
-setInterval(updateStats,3000);
+/* ===== LOAD GAME ===== */
+loadGame();
+buildUpgrades();
+restartAutoClicker();
+updateStats();
 </script>
 
 </body>
