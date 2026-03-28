@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Ultimate Mega Clicker</title>
+  <style>
+    body { font-family: Arial; background:#f0f0f0; margin:0; padding:10px; display:flex; flex-wrap:wrap; gap:20px; }
+    .column { background:#fff; border-radius:8px; padding:10px; max-width:300px; flex:1 1 300px; display:flex; flex-direction:column; }
+    button { cursor:pointer; border-radius:5px; border:none; padding:8px; margin:3px 0; width:100%; word-wrap:break-word; font-size:12px; }
+    #clickButton { height:50px; font-size:16px; background:#4CAF50; color:white; }
+    .upgradeBtn { background:#2196F3; color:white; }
+    .stat { margin:5px 0; font-size:14px; }
+    .progress { width:100%; background:#ddd; border-radius:5px; height:12px; margin:3px 0; }
+    .progress-bar { width:0%; height:100%; background:#4CAF50; border-radius:5px; }
+    .floating { position:absolute; font-size:14px; font-weight:bold; color:#ff0000; pointer-events:none; animation:floatUp 1s ease-out forwards; }
+    @keyframes floatUp { 0% {opacity:1; transform:translateY(0);} 100% {opacity:0; transform:translateY(-50px);} }
+  </style>
+</head>
+<body>
+
+<!-- Click Column -->
+<div class="column" id="clickColumn">
+  <h3>Clicks</h3>
+  <button id="clickButton">Click!</button>
+  <div class="stat" id="score">Clicks: 0</div>
+  <div class="stat" id="clickPowerStat">Clicks per click: 1</div>
+  <div id="clickUpgrades"></div>
+</div>
+
+<!-- Money Column -->
+<div class="column" id="moneyColumn">
+  <h3>Money</h3>
+  <div class="stat" id="money">Money: $0</div>
+  <div id="moneyUpgrades"></div>
+</div>
+
+<!-- AutoClicker Column -->
+<div class="column" id="autoColumn">
+  <h3>AutoClicker</h3>
+  <div class="stat" id="autoStats">Level: 0 | Total AutoClicks: 0 | Power: 1</div>
+  <div class="progress"><div class="progress-bar" id="autoBar"></div></div>
+  <div id="autoUpgrades"></div>
+</div>
+
+<!-- AutoSeller Column -->
+<div class="column" id="sellerColumn">
+  <h3>AutoSeller</h3>
+  <div class="stat" id="autoSellerStats">Level: 0 | Power: 1 | Status: ON</div>
+  <button id="toggleSeller">Toggle ON/OFF</button>
+  <div class="progress"><div class="progress-bar" id="sellerBar"></div></div>
+  <div id="autoSellerUpgrades"></div>
+</div>
+
+<!-- Rebirth Column -->
+<div class="column" id="rebirthColumn">
+  <h3>Rebirth & Permanent Upgrades</h3>
+  <div class="stat" id="rebirthPoints">Rebirth Points: 0</div>
+  <div class="stat" id="rebirthRequirement">Rebirth requires 1,000,000 clicks</div>
+  <button class="upgradeBtn" id="rebirth">Rebirth</button>
+  <div id="permUpgrades"></div>
+</div>
+
+<script>
+let clicks=0, money=0, clicksPerClick=1;
+let autoLevel=0, autoPower=1, autoClicks=0;
+let autoSellerLevel=0, autoSellerPower=1, autoSellerOn=true;
+let rebirthPoints=0;
+let permanentUpgrades={clickBonus:0, autoBonus:0, moneyBonus:0};
+let rebirthBoughtCount={};
+
+// Generate 25 upgrades per category dynamically
+function generateUpgrades(){
+  let clickUpgrades=[], moneyUpgrades=[], autoUpgrades=[], sellerUpgrades=[], permUpgrades=[];
+  for(let i=1;i<=25;i++){
+    clickUpgrades.push({name:`Click +${i}`, cost:10*i, power:i, type:"click"});
+    moneyUpgrades.push({name:`Sell ${i*10} Clicks → $${i*5}`, clickCost:i*10, moneyGain:i*5});
+    autoUpgrades.push({name:`AutoClicker +${i}`, clickCost:i*50, type:"autoBuy"});
+    sellerUpgrades.push({name:`AutoSeller +${i}`, cost:i*100, type:"autoSellerBuy"});
+    permUpgrades.push({name:`Rebirth Upgrade +${i}`, cost:i, type:"clickBonus"});
+  }
+  return {clickUpgrades, moneyUpgrades, autoUpgrades, sellerUpgrades, permUpgrades};
+}
+
+const upgrades = generateUpgrades();
+
+// DOM
+const scoreEl=document.getElementById("score");
+const clickPowerStat=document.getElementById("clickPowerStat");
+const moneyEl=document.getElementById("money");
+const autoStatsEl=document.getElementById("autoStats");
+const autoSellerStatsEl=document.getElementById("autoSellerStats");
+const rebirthPointsEl=document.getElementById("rebirthPoints");
+const autoBarEl=document.getElementById("autoBar");
+const sellerBarEl=document.getElementById("sellerBar");
+const clickBtn=document.getElementById("clickButton");
+const clickUpgradesDiv=document.getElementById("clickUpgrades");
+const moneyUpgradesDiv=document.getElementById("moneyUpgrades");
+const autoUpgradesDiv=document.getElementById("autoUpgrades");
+const autoSellerUpgradesDiv=document.getElementById("autoSellerUpgrades");
+const permUpgradesDiv=document.getElementById("permUpgrades");
+const toggleSellerBtn=document.getElementById("toggleSeller");
+
+// Floating animation
+function floatText(text,x,y){
+  const span=document.createElement("span");
+  span.textContent=text;
+  span.className="floating";
+  span.style.left=x+"px";
+  span.style.top=y+"px";
+  document.body.appendChild(span);
+  setTimeout(()=>span.remove(),1000);
+}
+
+// Create buttons dynamically
+function createUpgradeButtons(){
+  upgrades.clickUpgrades.forEach((u,i)=>{
+    let btn=document.createElement("button");
+    btn.className="upgradeBtn";
+    btn.id="clickUpgrade"+i;
+    btn.textContent=`${u.name} (Cost: $${u.cost})`;
+    btn.onclick=()=>{
+      if(money>=u.cost){
+        money-=u.cost;
+        clicksPerClick+=u.power;
+        u.cost=Math.floor(u.cost*1.5);
+        btn.textContent=`${u.name} (Cost: $${u.cost})`;
+        updateDisplay();
+      }
+    };
+    clickUpgradesDiv.appendChild(btn);
+  });
+
+  upgrades.moneyUpgrades.forEach((u,i)=>{
+    let btn=document.createElement("button");
+    btn.className="upgradeBtn";
+    btn.id="moneyUpgrade"+i;
+    btn.textContent=`${u.name} (Cost: ${u.clickCost} clicks)`;
+    btn.onclick=()=>{if(clicks>=u.clickCost){clicks-=u.clickCost; money+=u.moneyGain+permanentUpgrades.moneyBonus; updateDisplay();}};
+    moneyUpgradesDiv.appendChild(btn);
+  });
+
+  upgrades.autoUpgrades.forEach((u,i)=>{
+    let btn=document.createElement("button");
+    btn.className="upgradeBtn";
+    btn.id="autoUpgrade"+i;
+    btn.textContent=`${u.name} (Cost: ${u.clickCost} clicks)`;
+    btn.onclick=()=>{
+      if(clicks>=u.clickCost){clicks-=u.clickCost; autoLevel+=1; u.clickCost=Math.floor(u.clickCost*1.5); btn.textContent=`${u.name} (Cost: ${u.clickCost} clicks)`; updateDisplay();}
+    };
+    autoUpgradesDiv.appendChild(btn);
+  });
+
+  upgrades.sellerUpgrades.forEach((u,i)=>{
+    let btn=document.createElement("button");
+    btn.className="upgradeBtn";
+    btn.id="sellerUpgrade"+i;
+    btn.textContent=`${u.name} (Cost: $${u.cost})`;
+    btn.onclick=()=>{
+      if(money>=u.cost){money-=u.cost; autoSellerLevel+=1; autoSellerPower+=1; u.cost=Math.floor(u.cost*1.5); btn.textContent=`${u.name} (Cost: $${u.cost})`; updateDisplay();}
+    };
+    autoSellerUpgradesDiv.appendChild(btn);
+  });
+
+  upgrades.permUpgrades.forEach((u,i)=>{
+    rebirthBoughtCount[i]=0;
+    let btn=document.createElement("button");
+    btn.className="upgradeBtn";
+    btn.id="permUpgrade"+i;
+    btn.textContent=`${u.name} (Cost: ${u.cost} RP | Bought: ${rebirthBoughtCount[i]})`;
+    btn.onclick=()=>{
+      if(rebirthPoints>=u.cost){
+        rebirthPoints-=u.cost;
+        rebirthBoughtCount[i]+=1;
+        permanentUpgrades.clickBonus+=u.cost;
+        btn.textContent=`${u.name} (Cost: ${u.cost} RP | Bought: ${rebirthBoughtCount[i]})`;
+        updateDisplay();
+      }
+    };
+    permUpgradesDiv.appendChild(btn);
+  });
+}
+
+// Click
+clickBtn.addEventListener("click",e=>{
+  clicks+=clicksPerClick+permanentUpgrades.clickBonus;
+  floatText("+"+(clicksPerClick+permanentUpgrades.clickBonus),e.pageX,e.pageY);
+  updateDisplay();
+});
+
+// Auto-generators
+setInterval(()=>{
+  if(autoLevel>0){let gen=autoLevel*(autoPower+permanentUpgrades.autoBonus); autoClicks+=gen; clicks+=gen; autoBarEl.style.width=Math.min(100,(gen/1000)*100)+"%";}
+  if(autoSellerOn && autoSellerLevel>0){let sold=Math.min(clicks,autoSellerLevel*autoSellerPower); clicks-=sold; money+=sold+permanentUpgrades.moneyBonus; sellerBarEl.style.width=Math.min(100,(sold/1000)*100)+"%";}
+  updateDisplay();
+},1000);
+
+// Rebirth
+document.getElementById("rebirth").addEventListener("click",()=>{
+  if(clicks>=1000000){
+    let gainedRP=Math.floor(clicks/1000000);
+    rebirthPoints+=gainedRP;
+    clicks=0; money=0; clicksPerClick=1;
+    autoLevel=0; autoPower=1; autoClicks=0;
+    autoSellerLevel=0; autoSellerPower=1;
+    updateDisplay();
+  } else alert("Need 1,000,000 clicks to rebirth");
+});
+
+// Toggle AutoSeller
+toggleSellerBtn.addEventListener("click",()=>{
+  autoSellerOn=!autoSellerOn;
+  autoSellerStatsEl.textContent=`Level: ${autoSellerLevel} | Power: ${autoSellerPower} | Status: ${autoSellerOn?"ON":"OFF"}`;
+});
+
+// Update display
+function updateDisplay(){
+  scoreEl.textContent="Clicks: "+clicks;
+  moneyEl.textContent="Money: $"+money;
+  clickPowerStat.textContent="Clicks per click: "+(clicksPerClick+permanentUpgrades.clickBonus);
+  autoStatsEl.textContent=`Level: ${autoLevel} | Total AutoClicks: ${autoClicks} | Power: ${autoPower+permanentUpgrades.autoBonus}`;
+  autoSellerStatsEl.textContent=`Level: ${autoSellerLevel} | Power: ${autoSellerPower} | Status: ${autoSellerOn?"ON":"OFF"}`;
+  rebirthPointsEl.textContent="Rebirth Points: "+rebirthPoints;
+}
+
+createUpgradeButtons();
+updateDisplay();
+</script>
+
+</body>
+</html>
