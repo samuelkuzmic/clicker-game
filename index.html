@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>clicker game</title>
+  <title>Ultimate Clicker Expanded v2</title>
   <style>
     body { font-family: Arial; background:#f0f0f0; margin:0; padding:10px; display:flex; flex-wrap:wrap; gap:20px; }
     .column { background:#fff; border-radius:8px; padding:10px; max-width:300px; flex:1 1 300px; display:flex; flex-direction:column; }
@@ -26,6 +26,7 @@
 <div class="column" id="moneyColumn">
   <h3>Money</h3>
   <div class="stat" id="money">Money: $0</div>
+  <div class="stat" id="moneyBonusStat">Money Bonus: 0%</div>
   <div id="moneyUpgrades"></div>
 </div>
 
@@ -58,14 +59,17 @@ let clicks=0, money=0, clicksPerClick=1;
 let autoLevel=0, autoPower=1, autoClicks=0;
 let autoSellerLevel=0, autoSellerPower=1, autoSellerOn=true;
 let rebirthPoints=0;
-let permanentUpgrades={clickBonus:0, autoBonus:0, moneyBonus:0};
+let permanentUpgrades={clickBonus:0, autoBonus:0, moneyBonus:0}; // moneyBonus in % from rebirth
 let rebirthBoughtCount={};
 
-// Only meaningful upgrades
+// 5+ meaningful upgrades per category
 const upgrades = {
   clickUpgrades:[
     {name:"Click +1", cost:10, power:1},
-    {name:"Click x2", cost:500, power:0} // multiplier example
+    {name:"Click +5", cost:50, power:5},
+    {name:"Click x2", cost:200, power:0},
+    {name:"Click +10", cost:500, power:10},
+    {name:"Click x3", cost:1000, power:0}
   ],
   moneyUpgrades:[
     {name:"Sell 10 Clicks → $5", clickCost:10, moneyGain:5},
@@ -77,17 +81,25 @@ const upgrades = {
     {name:"Sell 1000000 Clicks → $500000", clickCost:1000000, moneyGain:500000}
   ],
   autoUpgrades:[
-    {name:"AutoClicker +1", clickCost:50},
-    {name:"AutoClicker Power +2", clickCost:200}
+    {name:"AutoClicker +1", clickCost:10},
+    {name:"AutoClicker +5", clickCost:50},
+    {name:"AutoClicker Power +1", clickCost:100},
+    {name:"AutoClicker Power +2", clickCost:200},
+    {name:"AutoClicker Speed x2", clickCost:500}
   ],
   sellerUpgrades:[
     {name:"AutoSeller +1", cost:100},
-    {name:"AutoSeller Power +1", cost:500}
+    {name:"AutoSeller +2", cost:300},
+    {name:"AutoSeller Power +1", cost:500},
+    {name:"AutoSeller Power +2", cost:1000},
+    {name:"AutoSeller Speed x2", cost:2000}
   ],
   permUpgrades:[
     {name:"Click Bonus +1", cost:1, type:"clickBonus"},
+    {name:"Click Bonus +2", cost:2, type:"clickBonus"},
     {name:"Auto Bonus +1", cost:2, type:"autoBonus"},
-    {name:"Money Bonus +1", cost:3, type:"moneyBonus"}
+    {name:"Money Bonus +5%", cost:3, type:"moneyBonus"},
+    {name:"Money Bonus +10%", cost:5, type:"moneyBonus"}
   ]
 };
 
@@ -95,6 +107,7 @@ const upgrades = {
 const scoreEl=document.getElementById("score");
 const clickPowerStat=document.getElementById("clickPowerStat");
 const moneyEl=document.getElementById("money");
+const moneyBonusStat=document.getElementById("moneyBonusStat");
 const autoStatsEl=document.getElementById("autoStats");
 const autoSellerStatsEl=document.getElementById("autoSellerStats");
 const rebirthPointsEl=document.getElementById("rebirthPoints");
@@ -128,16 +141,16 @@ function createUpgradeButtons(){
     let btn=document.createElement("button");
     btn.className="upgradeBtn";
     btn.textContent=`${u.name} (Cost: ${u.clickCost} clicks)`;
-    btn.onclick=()=>{if(clicks>=u.clickCost){clicks-=u.clickCost; money+=u.moneyGain+permanentUpgrades.moneyBonus; updateDisplay();}};
+    btn.onclick=()=>{if(clicks>=u.clickCost){clicks-=u.clickCost; money+=Math.floor(u.moneyGain*(1+permanentUpgrades.moneyBonus/100)); updateDisplay();}};
     moneyUpgradesDiv.appendChild(btn);
   });
 
   upgrades.autoUpgrades.forEach(u=>{
     let btn=document.createElement("button");
     btn.className="upgradeBtn";
-    btn.textContent=`${u.name} (Cost: ${u.clickCost} clicks)`;
+    btn.textContent=`${u.name} (Cost: ${u.clickCost} AutoClicks)`;
     btn.onclick=()=>{
-      if(clicks>=u.clickCost){clicks-=u.clickCost; autoLevel+=1; u.clickCost=Math.floor(u.clickCost*1.5); btn.textContent=`${u.name} (Cost: ${u.clickCost} clicks)`; updateDisplay();}
+      if(autoClicks>=u.clickCost){autoClicks-=u.clickCost; autoLevel+=1; u.clickCost=Math.floor(u.clickCost*1.5); btn.textContent=`${u.name} (Cost: ${u.clickCost} AutoClicks)`; updateDisplay();}
     };
     autoUpgradesDiv.appendChild(btn);
   });
@@ -161,7 +174,7 @@ function createUpgradeButtons(){
       if(rebirthPoints>=u.cost){
         rebirthPoints-=u.cost;
         rebirthBoughtCount[i]+=1;
-        permanentUpgrades[u.type]+=u.cost;
+        permanentUpgrades[u.type]+=u.type==="moneyBonus"?u.cost*5: u.cost; 
         btn.textContent=`${u.name} (Cost: ${u.cost} RP | Bought: ${rebirthBoughtCount[i]})`;
         updateDisplay();
       }
@@ -176,7 +189,7 @@ clickBtn.addEventListener("click",()=>{clicks+=clicksPerClick+permanentUpgrades.
 // Auto-generators
 setInterval(()=>{
   if(autoLevel>0){let gen=autoLevel*(autoPower+permanentUpgrades.autoBonus); autoClicks+=gen; clicks+=gen;}
-  if(autoSellerOn && autoSellerLevel>0){let sold=Math.min(clicks,autoSellerLevel*autoSellerPower); clicks-=sold; money+=sold+permanentUpgrades.moneyBonus;}
+  if(autoSellerOn && autoSellerLevel>0){let sold=Math.min(clicks,autoSellerLevel*autoSellerPower); clicks-=sold; money+=Math.floor(sold*(1+permanentUpgrades.moneyBonus/100));}
   updateDisplay();
 },1000);
 
@@ -203,6 +216,7 @@ function updateDisplay(){
   scoreEl.textContent="Clicks: "+clicks;
   moneyEl.textContent="Money: $"+money;
   clickPowerStat.textContent="Clicks per click: "+(clicksPerClick+permanentUpgrades.clickBonus);
+  moneyBonusStat.textContent="Money Bonus: "+permanentUpgrades.moneyBonus+"%";
   autoStatsEl.textContent=`Level: ${autoLevel} | Total AutoClicks: ${autoClicks} | Power: ${autoPower+permanentUpgrades.autoBonus}`;
   autoSellerStatsEl.textContent=`Level: ${autoSellerLevel} | Power: ${autoSellerPower} | Status: ${autoSellerOn?"ON":"OFF"}`;
   rebirthPointsEl.textContent="Rebirth Points: "+rebirthPoints;
