@@ -42,22 +42,6 @@
   <div id="autoSellerUpgrades"></div>
 </div>
 
-<div class="column" id="rebirthColumn">
-  <h3>Rebirth & Permanent Upgrades</h3>
-  <div class="stat" id="rebirthPoints">Rebirth Points: 0</div>
-  <div class="stat" id="rebirthRequirement">Rebirth requires 1,000,000 clicks</div>
-  <button class="upgradeBtn" id="rebirth">Rebirth</button>
-
-  <div class="stat">Auto-Rebirth Upgrades:</div>
-  <div id="autoBuyRebirthUpgrades">
-    <button id="toggleAutoRebirth">Auto-Rebirth: OFF</button>
-  </div>
-  <div class="stat">Auto-rebirth Threshold:</div>
-  <input type="number" id="autoRebirthThreshold" value="1000000">
-  
-  <div id="permUpgrades"></div>
-</div>
-
 <div class="column" id="bankColumn">
   <h3>Bank</h3>
   <div class="stat" id="bankMoney">Bank: 0</div>
@@ -69,16 +53,27 @@
 </div>
 
 <div class="column" id="automationHubColumn">
-  <h3>Automation Hub</h3>
+  <h3>Automation Hub & Rebirth</h3>
   <div id="automationLocked">
     <div class="stat">Unlock for 5,000,000 Clicks</div>
     <button id="unlockAutomation">Unlock</button>
   </div>
+
   <div id="automationContent" style="display:none;">
     <div class="stat">Automation Enabled</div>
     <button id="autoBuyClicker">AutoClicker: OFF</button>
     <button id="autoBuySeller">AutoSeller: OFF</button>
     <button id="toggleAutoClickSell">Auto Click & Sell First Upgrade: OFF</button>
+
+    <hr>
+    <div class="stat"><strong>Rebirth & Upgrades</strong></div>
+    <div class="stat" id="rebirthPoints">Rebirth Points: 0</div>
+    <div class="stat" id="rebirthRequirement">Rebirth requires 1,000,000 clicks</div>
+    <button class="upgradeBtn" id="rebirth">Rebirth</button>
+    <div class="stat">Auto-Rebirth Threshold:</div>
+    <input type="number" id="autoRebirthThreshold" value="1000000">
+    <button id="toggleAutoRebirth">Auto-Rebirth: OFF</button>
+    <div id="permUpgrades"></div>
   </div>
 </div>
 
@@ -162,6 +157,7 @@ const autoBuySellerBtn=document.getElementById("autoBuySeller");
 const toggleAutoClickSellBtn=document.getElementById("toggleAutoClickSell");
 const toggleAutoRebirthBtn=document.getElementById("toggleAutoRebirth");
 const autoRebirthThresholdInput=document.getElementById("autoRebirthThreshold");
+const rebirthBtn=document.getElementById("rebirth");
 
 /* ===== SAVE/LOAD ===== */
 function saveGame(){localStorage.setItem("clickerGameData",JSON.stringify(game));}
@@ -239,7 +235,7 @@ toggleAutoRebirthBtn.addEventListener("click",()=>{
 autoRebirthThresholdInput.addEventListener("change",()=>{game.autoRebirthThreshold=parseInt(autoRebirthThresholdInput.value)||1000000;});
 
 /* ===== REBIRTH ===== */
-document.getElementById("rebirth").addEventListener("click",()=>{
+rebirthBtn.addEventListener("click",()=>{
   if(game.clicks>=1000000){
     game.rebirthPoints += Math.floor(game.clicks/1000000);
     game.clicks=0; game.money=0;
@@ -374,7 +370,7 @@ function restartAutoSeller(){
 }
 restartAutoSeller();
 
-/* ===== AUTO BUY / AUTO REBIRTH / CLICKSELL ===== */
+/* ===== AUTO BUY / AUTO REBIRTH / CLICKSELL LOOP ===== */
 setInterval(()=>{
   if(game.autoBuySettings.clicker){
     baseUpgrades.autoUpgrades.forEach((u,i)=>{
@@ -405,6 +401,11 @@ setInterval(()=>{
   updateStats();
 },1000);
 
+/* ===== AUTO SAVE ===== */
+setInterval(saveGame,5000);
+
+updateStats();
 </script>
+
 </body>
 </html>
