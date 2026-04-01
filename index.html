@@ -78,7 +78,6 @@
 </div>
 
 <script>
-/* ===== GAME STATE ===== */
 let game = {
   clicks:0, money:0, clicksPerClick:1,
   autoLevel:0, autoPower:1, autoClicks:0, autoClickInterval:1000, autoClickTimer:null,
@@ -93,7 +92,6 @@ let game = {
   upgradeCosts:{}
 };
 
-/* ===== BASE UPGRADES ===== */
 const baseUpgrades = {
   clickUpgrades:[
     {name:"Click +1", baseCost:10, power:1},
@@ -107,7 +105,8 @@ const baseUpgrades = {
     {name:"Sell 50 Clicks → $30", baseClickCost:50, moneyGain:30},
     {name:"Sell 100 Clicks → $70", baseClickCost:100, moneyGain:70},
     {name:"Sell 1000 Clicks → $800", baseClickCost:1000, moneyGain:800},
-    {name:"Sell 10000 Clicks → $10000", baseClickCost:10000, moneyGain:10000}
+    {name:"Sell 10000 Clicks → $10000", baseClickCost:10000, moneyGain:10000},
+    {name:"Sell 1000000 Clicks → $500000", baseClickCost:1000000, moneyGain:500000}
   ],
   autoUpgrades:[
     {name:"Buy AutoClicker", baseBuyCost:100, buyCost:100},
@@ -128,7 +127,6 @@ const baseUpgrades = {
   ]
 };
 
-/* ===== DOM ELEMENTS ===== */
 const scoreEl=document.getElementById("score");
 const clickPowerStat=document.getElementById("clickPowerStat");
 const moneyEl=document.getElementById("money");
@@ -159,7 +157,6 @@ const toggleAutoRebirthBtn=document.getElementById("toggleAutoRebirth");
 const autoRebirthThresholdInput=document.getElementById("autoRebirthThreshold");
 const rebirthBtn=document.getElementById("rebirth");
 
-/* ===== SAVE/LOAD ===== */
 function saveGame(){localStorage.setItem("clickerGameData",JSON.stringify(game));}
 function loadGame(){
   const data=JSON.parse(localStorage.getItem("clickerGameData")||"{}");
@@ -176,7 +173,6 @@ function loadGame(){
 }
 loadGame();
 
-/* ===== UPDATE ===== */
 function updateStats(){
   scoreEl.innerText=`Clicks: ${game.clicks}`;
   clickPowerStat.innerText=`Clicks per click: ${game.clicksPerClick + (game.permanentUpgrades.clickBonus||0)}`;
@@ -196,10 +192,8 @@ function updateStats(){
   saveGame();
 }
 
-/* ===== CLICK ===== */
 clickBtn.addEventListener("click",()=>{game.clicks+=game.clicksPerClick+(game.permanentUpgrades.clickBonus||0);updateStats();});
 
-/* ===== BANK ===== */
 depositBtn.addEventListener("click",()=>{
   let amt = parseInt(depositAmount.value)||0;
   if(amt>game.clicks) amt=game.clicks;
@@ -211,12 +205,10 @@ withdrawBtn.addEventListener("click",()=>{
   game.bank -= amt; game.clicks += amt; updateStats();
 });
 
-/* ===== TOGGLE SELLER ===== */
 toggleSellerBtn.addEventListener("click",()=>{
   game.autoSellerOn=!game.autoSellerOn; updateStats();
 });
 
-/* ===== AUTOMATION ===== */
 unlockAutomationBtn.addEventListener("click",()=>{
   if(game.clicks>=5000000){game.automationHubUnlocked=true; updateStats();}
 });
@@ -234,7 +226,6 @@ toggleAutoRebirthBtn.addEventListener("click",()=>{
 });
 autoRebirthThresholdInput.addEventListener("change",()=>{game.autoRebirthThreshold=parseInt(autoRebirthThresholdInput.value)||1000000;});
 
-/* ===== REBIRTH ===== */
 rebirthBtn.addEventListener("click",()=>{
   if(game.clicks>=1000000){
     game.rebirthPoints += Math.floor(game.clicks/1000000);
@@ -250,7 +241,6 @@ rebirthBtn.addEventListener("click",()=>{
   }
 });
 
-/* ===== CREATE UPGRADE BUTTONS ===== */
 function createUpgrades(){
   clickUpgradesDiv.innerHTML="";
   baseUpgrades.clickUpgrades.forEach((u,i)=>{
@@ -342,7 +332,6 @@ function createUpgrades(){
 }
 createUpgrades();
 
-/* ===== AUTOCLICKER LOOP ===== */
 function autoClickerLoop(){
   if(game.autoLevel>0){
     game.clicks += (game.autoPower + (game.permanentUpgrades.autoBonus||0)) * game.autoLevel;
@@ -356,7 +345,6 @@ function restartAutoClicker(){
 }
 restartAutoClicker();
 
-/* ===== AUTOSELLER LOOP ===== */
 function autoSellerLoop(){
   if(game.autoSellerOn && game.autoSellerLevel>0){
     let sellAmt = game.autoSellerPower * game.autoSellerLevel;
@@ -370,7 +358,6 @@ function restartAutoSeller(){
 }
 restartAutoSeller();
 
-/* ===== AUTO BUY / AUTO REBIRTH / CLICKSELL LOOP ===== */
 setInterval(()=>{
   if(game.autoBuySettings.clicker){
     baseUpgrades.autoUpgrades.forEach((u,i)=>{
@@ -394,16 +381,13 @@ setInterval(()=>{
   }
 },1000);
 
-/* ===== BANK TIMER ===== */
 setInterval(()=>{
   game.bankTimer--;
   if(game.bankTimer<=0){game.bankTimer=60; game.bank*=2;}
   updateStats();
 },1000);
 
-/* ===== AUTO SAVE ===== */
 setInterval(saveGame,5000);
-
 updateStats();
 </script>
 
